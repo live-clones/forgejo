@@ -3081,8 +3081,17 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	var comment *issues_model.Comment
+	var (
+		executeDefer bool
+		comment *issues_model.Comment
+	)
+
 	defer func() {
+
+		if !executeDefer {
+			return
+		}
+
 		// Check if issue admin/poster changes the status of issue.
 		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.Doer.ID))) &&
 			(form.Status == "reopen" || form.Status == "close") &&
@@ -3219,6 +3228,8 @@ func NewComment(ctx *context.Context) {
 		}
 		return
 	}
+
+	executeDefer = true
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
