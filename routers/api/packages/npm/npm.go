@@ -23,6 +23,7 @@ import (
 	"forgejo.org/modules/setting"
 	"forgejo.org/modules/util"
 	"forgejo.org/routers/api/packages/helper"
+	"forgejo.org/services/authz"
 	"forgejo.org/services/context"
 	packages_service "forgejo.org/services/packages"
 
@@ -165,18 +166,28 @@ func UploadPackage(ctx *context.Context) {
 
 	repo, err := repo_model.GetRepositoryByURL(ctx, npmPackage.Metadata.Repository.URL)
 	if err == nil {
-		canWrite := repo.OwnerID == ctx.Doer.ID
-
-		if !canWrite {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			if err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
-				return
-			}
-
-			canWrite = perms.CanWrite(unit.TypePackages)
+		// npm is unique in the package registry as checking repo-level permissions based upon the package metadata URL
+		// matched to the repository: writing to the registry requires a write-level package scope, but also requires
+		// that you can write to the related repo. As this logic is implemented for npm, fine-grained access token
+		// checks are added here explicitly as well to maintain the same logic. But it's weird that it's only
+		// implemented for npm and not for other packages.
+		//
+		// UploadPackage isn't given an APIContext, so manually extract "ApiTokenResource" which is populated by
+		// fine-grained access tokens authentication.
+		reducer, ok := ctx.Data["ApiTokenReducer"].(authz.AuthorizationReducer)
+		if !ok {
+			// No "ApiTokenReducer" will be populated if the auth method wasn't an PAT (eg. oauth2); apply no resource
+			// restrictions in those cases:
+			reducer = &authz.AllAccessAuthorizationReducer{}
 		}
 
+		perms, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, reducer)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		canWrite := perms.CanWrite(unit.TypePackages)
 		if !canWrite {
 			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
 			return
