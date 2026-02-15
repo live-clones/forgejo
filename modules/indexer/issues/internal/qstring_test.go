@@ -11,6 +11,8 @@ import (
 	"forgejo.org/models/user"
 	"forgejo.org/modules/optional"
 
+	_ "forgejo.org/models/repo" // repository is indirectly referenced by user->auth, and it has a FK to repository, so we need to load this model into the test to initialize the other models
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
