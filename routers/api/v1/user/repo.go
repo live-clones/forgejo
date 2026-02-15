@@ -42,6 +42,8 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
+		// FIXME: every case of `ctx.Doer.IsAdmin` like this needs to be audited for the admin access, at least within
+		// the API.  Another semgrep rule, to only use `ctx.IsUserSiteAdmin()` in API code?
 		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAccess() {
 			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 		}
