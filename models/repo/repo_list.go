@@ -186,6 +186,8 @@ type SearchRepoOptions struct {
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
 	// - Do not display repositories that don't have a description, an icon and topics.
 	OnlyShowRelevant bool
+	// Used for filtering based upon available resources for an API token via ResourceAuthorization.
+	ResourceFilter builder.Cond
 }
 
 // UserOwnedRepoCond returns user ownered repositories
@@ -516,6 +518,10 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
 
 		cond = cond.And(subQueryCond)
+	}
+
+	if opts.ResourceFilter != nil {
+		cond = cond.And(opts.ResourceFilter)
 	}
 
 	return cond

@@ -15,6 +15,7 @@ import (
 	"forgejo.org/models/db"
 	issues_model "forgejo.org/models/issues"
 	"forgejo.org/models/organization"
+	"forgejo.org/models/perm"
 	access_model "forgejo.org/models/perm/access"
 	repo_model "forgejo.org/models/repo"
 	"forgejo.org/models/unit"
@@ -158,7 +159,12 @@ func SearchIssues(ctx *context.APIContext) {
 	{
 		// find repos user can access (for issue search)
 		opts := &repo_model.SearchRepoOptions{
-			Private:     false,
+			// Note that ctx.Resource's `RepoFilter()` will be added below, which may implement a PAT's scope to only
+			// display public repos, so we can safely just request all Private repos here:
+			//
+			// FIXME: test for whether AllLimited? should be included?
+			// FIXME: Check !IsSigned -- what happens to `ctx.Resource` in this case?
+			Private:     true,
 			AllPublic:   true,
 			TopicOnly:   false,
 			Collaborate: optional.None[bool](),
@@ -168,7 +174,6 @@ func SearchIssues(ctx *context.APIContext) {
 			Actor:   ctx.Doer,
 		}
 		if ctx.IsSigned {
-			opts.Private = !ctx.PublicOnly
 			opts.AllLimited = true
 		}
 		if ctx.FormString("owner") != "" {
@@ -207,6 +212,10 @@ func SearchIssues(ctx *context.APIContext) {
 			allPublic = true
 			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
 		}
+
+		// Limit scope of issue search to fine-grained access token resources (if applicable):
+		opts.ResourceFilter = ctx.Reducer.RepoFilter(perm.AccessModeRead)
+
 		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchRepositoryIDs", err)
@@ -497,6 +506,8 @@ func ListIssues(ctx *context.APIContext) {
 		isPull = optional.Some(false)
 	}
 
+	// FIXME: write a test for ListIssues w/ a fine-grained access token; probably OK but a good place to
+	// integration-test the `ctx.Repo` permissions.
 	if has, value := isPull.Get(); has && !ctx.Repo.CanReadIssuesOrPulls(value) {
 		ctx.NotFound()
 		return

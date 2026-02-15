@@ -131,10 +131,9 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	// Note that ctx.Resource's `RepoFilter()` will be added below, which may implement a PAT's scope to only display
+	// public repos regardless of the request for private repos in the API call.
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
-	}
 
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -203,6 +202,9 @@ func Search(ctx *context.APIContext) {
 			return
 		}
 	}
+
+	// Limit scope of issue search to fine-grained access token resources (if applicable):
+	opts.ResourceFilter = ctx.Reducer.RepoFilter(perm.AccessModeRead)
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
