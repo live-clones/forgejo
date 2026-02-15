@@ -1,0 +1,28 @@
+// Copyright 2026 The Forgejo Authors. All rights reserved.
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package authz
+
+import (
+	"context"
+
+	"forgejo.org/models/perm"
+	repo_model "forgejo.org/models/repo"
+
+	"xorm.io/builder"
+)
+
+// Implementation of [AuthorizationReducer] that does no authorization reduction.
+type AllAccessAuthorizationReducer struct{}
+
+func (*AllAccessAuthorizationReducer) ReduceRepoAccess(ctx context.Context, repo *repo_model.Repository, accessMode perm.AccessMode) (perm.AccessMode, error) {
+	return accessMode, nil
+}
+
+func (*AllAccessAuthorizationReducer) RepoFilter(accessMode perm.AccessMode) builder.Cond {
+	return builder.Expr("1 == 1") // always true
+}
+
+func (*AllAccessAuthorizationReducer) AllowAdminOverride() bool {
+	return true
+}
