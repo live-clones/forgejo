@@ -17,13 +17,14 @@ import (
 )
 
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(ctx context.Context, userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
+func GetStarredRepos(ctx context.Context, userID int64, private bool, listOptions db.ListOptions, resourceFilter builder.Cond) ([]*Repository, error) {
 	sess := db.GetEngine(ctx).
 		Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
 	}
+	sess = sess.And(resourceFilter)
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
