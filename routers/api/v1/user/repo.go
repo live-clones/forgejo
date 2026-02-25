@@ -6,6 +6,7 @@ package user
 import (
 	"net/http"
 
+	"forgejo.org/models/perm"
 	access_model "forgejo.org/models/perm/access"
 	repo_model "forgejo.org/models/repo"
 	user_model "forgejo.org/models/user"
@@ -20,10 +21,11 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
 	repos, count, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
-		Actor:       u,
-		Private:     private,
-		ListOptions: opts,
-		OrderBy:     "id ASC",
+		Actor:          u,
+		Private:        private,
+		ListOptions:    opts,
+		OrderBy:        "id ASC",
+		ResourceFilter: ctx.Reducer.RepoFilter(perm.AccessModeRead),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
@@ -137,6 +139,9 @@ func ListMyRepos(ctx *context.APIContext) {
 			return
 		}
 	}
+
+	// Limit scope of issue search to fine-grained access token resources (if applicable):
+	opts.ResourceFilter = ctx.Reducer.RepoFilter(perm.AccessModeRead)
 
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {

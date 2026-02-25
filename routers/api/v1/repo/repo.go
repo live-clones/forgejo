@@ -131,10 +131,9 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	// Note that ctx.Resource's `RepoFilter()` will be added below, which may implement a PAT's scope to only display
+	// public repos regardless of the request for private repos in the API call.
 	private := ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private"))
-	if ctx.PublicOnly {
-		private = false
-	}
 
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
@@ -204,6 +203,9 @@ func Search(ctx *context.APIContext) {
 		}
 	}
 
+	// Limit scope of issue search to fine-grained access token resources (if applicable):
+	opts.ResourceFilter = ctx.Reducer.RepoFilter(perm.AccessModeRead)
+
 	repos, count, err := repo_model.SearchRepository(ctx, opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
@@ -222,13 +224,17 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, ctx.Reducer)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
+		} else if !permission.HasAccess() {
+			// FIXME: throw an error here?  we've somehow got a repository that we don't have access to, despite
+			// `opts.ResourceFilter`?  Certainly do something other than return it!
 		}
+
 		results[i] = convert.ToRepo(ctx, repo, permission)
 	}
 	ctx.SetLinkHeader(int(count), opts.PageSize)
