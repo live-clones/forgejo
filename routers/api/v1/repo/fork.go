@@ -63,9 +63,9 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		permission, err := access_model.GetUserRepoPermission(ctx, fork, ctx.Doer)
+		permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, fork, ctx.Doer, ctx.Reducer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermissionWithReducer", err)
 			return
 		}
 		apiForks[i] = convert.ToRepo(ctx, fork, permission)
