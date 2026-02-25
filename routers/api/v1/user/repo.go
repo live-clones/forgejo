@@ -37,9 +37,9 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		permission, err := access_model.GetUserRepoPermission(ctx, repos[i], ctx.Doer)
+		permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repos[i], ctx.Doer, ctx.Reducer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermissionWithReducer", err)
 			return
 		}
 		// FIXME: every case of `ctx.Doer.IsAdmin` like this needs to be audited for the admin access, at least within
