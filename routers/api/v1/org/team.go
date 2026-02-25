@@ -579,14 +579,16 @@ func GetTeamRepos(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
 	}
-	repos := make([]*api.Repository, len(teamRepos))
-	for i, repo := range teamRepos {
-		permission, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	repos := make([]*api.Repository, 0, len(teamRepos))
+	for _, repo := range teamRepos {
+		permission, err := access_model.GetUserRepoPermissionWithReducer(ctx, repo, ctx.Doer, ctx.Reducer)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermissionWithReducer", err)
 			return
 		}
-		repos[i] = convert.ToRepo(ctx, repo, permission)
+		if permission.HasAccess() {
+			repos = append(repos, convert.ToRepo(ctx, repo, permission))
+		}
 	}
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
