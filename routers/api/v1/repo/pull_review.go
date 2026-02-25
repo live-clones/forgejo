@@ -813,9 +813,9 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 
 	reviewers := make([]*user_model.User, 0, len(opts.Reviewers))
 
-	permDoer, err := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, ctx.Doer)
+	permDoer, err := access_model.GetUserRepoPermissionWithReducer(ctx, pr.Issue.Repo, ctx.Doer, ctx.Reducer)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermissionWithReducer", err)
 		return
 	}
 
