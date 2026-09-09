@@ -7,7 +7,6 @@
   is_internal: false
   metadata_json: 'null'
   download_count: 0
-  total_size: 30
 
 - id: 75
   package_id: 2
@@ -18,7 +17,6 @@
   is_internal: false
   metadata_json: 'null'
   download_count: 0
-  total_size: 20
 
 - id: 76
   package_id: 3
@@ -29,7 +27,6 @@
   is_internal: false
   metadata_json: 'null'
   download_count: 0
-  total_size: 50
 
 - id: 77
   package_id: 4
@@ -40,4 +37,3 @@
   is_internal: false
   metadata_json: 'null'
   download_count: 0
-  total_size: 10
