@@ -155,20 +155,6 @@ func TestDeleteUserCleansUpRepoSpecificAPIAccess(t *testing.T) {
 	}
 	require.NoError(t, auth_model.InsertAccessTokenResourceRepos(t.Context(), accessToken.ID, []*auth_model.AccessTokenResourceRepo{resRepo1}))
 
-	// Create authorized integration with repo-specific access, owned by `user`
-	ai := &auth_model.AuthorizedIntegration{
-		UserID:           user.ID,
-		Scope:            auth_model.AccessTokenScopeReadRepository,
-		ResourceAllRepos: false,
-		Issuer:           "https://example.org/",
-		ClaimRules:       &auth_model.ClaimRules{},
-	}
-	require.NoError(t, auth_model.InsertAuthorizedIntegration(t.Context(), ai))
-	aiResRepo1 := &auth_model.AuthorizedIntegResourceRepo{
-		RepoID: 2,
-	}
-	require.NoError(t, auth_model.InsertAuthorizedIntegrationResourceRepos(t.Context(), ai.ID, []*auth_model.AuthorizedIntegResourceRepo{aiResRepo1}))
-
 	// Delete user.  No follow-up assertions are required as foreign key violations will occur if the delete did not
 	// cleanup the repo-specific access created above.
 	require.NoError(t, DeleteUser(db.DefaultContext, user, false))
